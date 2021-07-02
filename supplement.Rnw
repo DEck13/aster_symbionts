@@ -1,0 +1,1858 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amscd}
+\usepackage{amssymb}
+\usepackage{natbib}
+\usepackage{url}
+\usepackage{graphicx,times}
+\usepackage{epsfig}
+\usepackage{tikz-cd}
+\usepackage{setspace}
+\usepackage{epic}
+\usepackage{float}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\text{E}}
+\newcommand{\Var}{\text{Var}}
+\newcommand{\aster}{\texttt{aster}\,}
+\newcommand{\astertwo}{\texttt{aster2}\,}
+\newcommand{\transU}{\texttt{transformUnconditional}\,}
+\newcommand{\betahat}{\hat{\beta}}
+\newcommand{\tauhat}{\hat{\tau}}
+
+\setlength{\parindent}{0cm}
+
+\title{Supporting Data Analysis for ``Do defensive symbionts cause selection for greater pathogen virulence?''}
+\author{Georgiana May, Ruth G. Shaw, Charles J. Geyer, Daniel J. Eck}
+
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+%\SweaveOpts{concordance=TRUE}
+
+\maketitle
+
+In this document we reproduce the aster analyses that are presented in the ``Do defensive symbionts cause selection for greater pathogen virulence?'' manuscript. We begin with a description of the aster graphical structure that represents the lifecycle of the pathogen \emph{Ustilago maydis} within the host plant \emph{Zea mays}. We then describe how we converted the collected raw data into a form that is usable by \texttt{aster2} software \citep{aster2-package}. From here we fit and tested candidate aster models, arriving at a final model using backwards selection. Pathogen fitness landscapes are then presented.
+
+\tableofcontents
+
+
+
+\newpage
+\section{The aster graph}
+
+
+\begin{center}
+\begin{figure}[h]
+\centering
+\setlength{\unitlength}{0.25 cm}
+\begin{picture}(45,20)(3.5,0)
+\scriptsize
+\put(25,1){\makebox(0,0){$1$}}
+\put(25,6){\makebox(0,0){$I$}}
+\put(25,2.5){\vector(0,1){2.5}}
+
+\put(21,11){\makebox(0,0){$LH3$}}
+\put(25,11){\makebox(0,0){$LH1$}}
+\put(29,11){\makebox(0,0){$LH2$}}
+\put(25,7){\vector(1,1){2.75}}
+\put(25,7){\vector(0,1){2.5}}
+\put(25,7){\vector(-1,1){2.75}}
+\put(23.5,11){\line(-1,0){1}}
+\put(26.5,11){\line( 1,0){1}}
+
+\put(17,11){\makebox(0,0){$per$}}
+\put(33,11){\makebox(0,0){$per$}}
+\put(19.5,11){\vector(-1,0){1.5}}
+\put(30.5,11){\vector(1,0){1.5}}
+
+\put(12,14){\makebox(0,0){$PD1$}}
+\put(12,8){\makebox(0,0){$PD0$}}
+\put(16,11){\vector(-1,1){2.5}}
+\put(16,11){\vector(-1,-1){2.5}}
+\put(12,13){\line(0,-1){4}}
+
+\put(38,14){\makebox(0,0){$PD1$}}
+\put(38,8){\makebox(0,0){$PD0$}}
+\put(34,11){\vector(1,1){2.5}}
+\put(34,11){\vector(1,-1){2.5}}
+\put(38,13){\line(0,-1){4}}
+
+
+% GallWT nodes on LHS
+\put(6,14){\makebox(0,0){$GallWT$}}
+\put(6,18){\makebox(0,0){$GallWT.sd$}}
+\put(10.5,14){\vector(-1,1){3}}
+\put(10.5,14){\vector(-1,0){2}}
+\put(6,17){\line(0,-1){2}}
+
+\put(6,8){\makebox(0,0){$GallWT$}}
+\put(6,4){\makebox(0,0){$GallWT.sd$}}
+\put(10.5,8){\vector(-1,-1){3}}
+\put(10.5,8){\vector(-1,0){2}}
+\put(6,7){\line(0,-1){2}}
+
+
+% GallWT nodes on RHS
+\put(44,14){\makebox(0,0){$GallWT$}}
+\put(44,18){\makebox(0,0){$GallWT.sd$}}
+\put(39.5,14){\vector(1,1){3}}
+\put(39.5,14){\vector(1,0){2}}
+\put(44,17){\line(0,-1){2}}
+
+\put(44,8){\makebox(0,0){$GallWT$}}
+\put(44,4){\makebox(0,0){$GallWT.sd$}}
+%\put(39.5,8){\vector(1,-1){3}}
+%\put(39.5,8){\vector(1,0){2}}
+\dashline{0.25}(39.5,8)(41.5,8)
+\put(41.4,8){\vector(1,0){0.1}}
+\dashline{0.25}(39.5,8)(41.97,5.53)
+\put(41.97,5.53){\vector(1,-1){0.4}}
+\dashline{0.25}(44,7)(44,5)
+
+
+
+\end{picture}
+\caption{Modified Aster Graph for our data.  Arrows go from predecessor nodes to successor nodes. Lines (that are not arrows) link dependence groups \citep{eckanalysis}.  The dashed vectors and lines correspond to nodes where no data was observed.  Developmental paths are designated $LH$. After infection ($I$) there is either no further disease development ($LH1$), development on leaves ($LH2$) or development on stems ($LH3$) and thus, $LH1$, $LH2$, $LH3$ form a dependency group.  If the pathogen growth in the plant persists ($per$) after infection, it may either cause plant death ($PD0$) or not ($PD1$).  Since plants either live or die but not both, $PD0$ and $PD1$ are a dependency group within each developmental path, $LH2$ or $LH3$. For both paths, the pathogen may produce galls filled with spores, a measure of reproduction (GallWT).  In the LH3 path, galls were produced whether the plant lived or died ($PD1$, $PD0$) whereas in the $LH2$ path, plant death did not occur.
+}
+\label{graph:one}
+\end{figure}
+\end{center}
+
+
+
+
+\newpage 
+\section{The Data}
+
+Before we begin manipulating the data into a useable form, we load the needed software.  The $\astertwo$ package \citep*{aster2-package} has the capabilities to perform an aster analyses when nodes in the aster model graphical structure form a dependence group which is a requirement of this analysis.
+
+
+<<message = FALSE, warning = FALSE>>=
+library(Matrix)
+library(methods)
+library(MASS)
+library(knitr)
+library(aster2)
+library(tidyverse)
+@
+
+
+We load the data and store it as \texttt{Patho}. The names of the variables and a snapshot of the information contained in \texttt{Patho} is seen below.
+
+
+<<>>=
+## load in data
+dat <- read.csv("PathogenA4_6_7_15.csv", sep = ",", 
+  header = T)
+
+## keep variables used in the analysis
+Patho <- dat %>% dplyr::select("Block", "Treatment", 
+  "Fvert", "InVir", "Infect", "LH_stage", "Path_persist", 
+  "PlantLives2", "GallWT", "Umaydis", "Height19")
+
+## snapshot of the data
+head(Patho[, 1:6])
+head(Patho[, 7:11])
+@
+
+
+The ``mock" treatments are filtered out from the dataset.  Records with \texttt{Umaydis == 0} are removed as well.
+
+
+<<>>=
+Patho <- Patho %>% filter(Treatment != "Mock", 
+  Umaydis != 0)
+@
+
+
+This dataset has NA values present in various locations.  All of these NA values are either associated with ``mock" treatments or plants that did not grow (DNG) which was recorded in the \texttt{Height19} variable. We remove the DNG entries from the \texttt{Height19} variable.
+
+
+<<>>=
+Patho <- Patho %>% filter(Height19 != "DNG")
+all(!is.na(Patho))
+@
+
+
+We now convert the data into a format workable for aster software.  We first specify the life history stage nodes (coded $LH1$, $LH2$, or $LH3$).  The collection of nodes $LH1$, $LH2$, and $LH3$ are said to form a dependence group.  Nodes that form a dependence group are intertwined in the sense that a particular individual can only progress to one of the nodes in the dependence group.  Thus, these nodes individually act as switches that are coded 0 or 1 where a 1 indicates the path that a particular \emph{U. maydis} was recorded to take.  For example, if a particular \emph{U. maydis} has $LH2 = 1$ recorded, then this pathogen is said to have limited growth and it will also have the values $LH3 = 0$ and $LH1 = 0$.  All future realizations in the lifecycle for this particular \emph{U. maydis} pathogen are conditional on the fact that it exhibited limited growth indicated by the switch $LH1 = 0$, $LH2 = 1$, $LH3 = 0$.
+
+
+<<>>=
+assign("LH2", as.numeric(Patho$LH_stage == 2))
+assign("LH3", as.numeric(Patho$LH_stage == 3))
+unique(LH2 + LH3 - as.numeric(Patho$LH_stage > 0))
+cond <- LH2 + LH3 - as.numeric(Patho$Infect > 0) == -1
+assign("LH1", as.numeric(cond))
+unique(LH1 + LH2 + LH3 - as.numeric(Patho$Infect > 0))
+@
+
+
+All remaining life stages have to be coded with respect to the growth the pathogen exhibited.  Therefore, pathogen persistence, plant death, and gall weight nodes have to be constructed with respect to both the $LH2 = 1$ and $LH3 = 1$ cases.  The $LH = 1$ case indicates no growth of pathogen within the plant and therefore this case has no ancestor nodes. We begin with pathogen persistence for both cases where the realization of both persistence and non-persistence is checked. 
+
+
+<<>>=
+assign("persists2", as.numeric(Patho$LH_stage == 2))
+persists2[Patho$Path_persist == 0] <- 0
+unique(persists2 - LH2)
+
+assign("persists3", as.numeric(Patho$LH_stage == 3))
+persists3[Patho$Path_persist == 0] <- 0
+unique(persists3 - LH3)
+@
+
+
+Next, we construct the plant death nodes for both cases and check the realization of both life and death of the plant.  In this experiment, the pathogen can still live while the plant dies.  Therefore, plant death forms another dependence group.
+
+
+<<>>=
+assign("PD2_1", persists2)
+PD2_1[Patho$PlantLives2 == 0] <- 0
+assign("PD2_0", persists2)
+PD2_0[Patho$PlantLives2 == 1] <- 0
+unique(PD2_1 + PD2_0 - persists2)
+
+assign("PD3_1", persists3)
+PD3_1[Patho$PlantLives2 == 0] <- 0
+assign("PD3_0", persists3)
+PD3_0[Patho$PlantLives2 == 1] <- 0
+unique(PD3_1 + PD3_0 - persists3)
+@
+
+
+In the above, we observe no plant death when a pathogen persists and $LH = 2$.  If we proceed further with this unacknowledged, we will end up fitting a degenerate aster model.  We can handle this in one of two ways: 
+
+\begin{itemize} 
+\item[1)] We can remove either the persistence node or plant death node when $LH = 2$. 
+\item[2)] We can specify the relevant directions of recession relating corresponding to this occurrence. This is complicated. but it can be handled by \texttt{aster2} software.
+\end{itemize}
+
+We go with the second avenue.  The aster graph depicted in Figure~\ref{graph:one} reflects this decision. This aster graph also specifies the $LH1$ node corresponding to when a plant was infected but no pathogen growth was observed.  We now construct the $GallWT$ nodes.
+
+
+<<>>=
+Patho$GallWT <- as.numeric(as.character(Patho$GallWT))
+Patho$GallWT <- Patho$GallWT/1000
+assign("GallWT2_1", as.numeric(Patho$GallWT))
+GallWT2_1[PD2_1 == 0] <- 0
+unique(as.numeric(GallWT2_1 > 0) - PD2_1)
+assign("GallWT2_0", as.numeric(Patho$GallWT))
+GallWT2_0[PD2_0 == 0] <- 0
+unique(as.numeric(GallWT2_0 > 0) - PD2_0)
+
+assign("GallWT3_1", as.numeric(Patho$GallWT))
+GallWT3_1[PD3_1 == 0] <- 0
+unique(as.numeric(GallWT3_1 > 0) - PD3_1)
+assign("GallWT3_0", as.numeric(Patho$GallWT))
+GallWT3_0[PD3_0 == 0] <- 0
+unique(as.numeric(GallWT3_0 > 0) - PD3_0)
+@
+
+
+All of the $GallWT$ nodes need to have an associated variance node since the normal distribution is a two parameter exponential family.  The $GallWT$ nodes that follow the occurrence pathogen persistence when $LH = 2$ are trimmed off of the graphical structure, see Figure~\ref{graph:one}.  This is because no individuals progressed to this life stage and \texttt{aster2} requires such a trimming in order to function properly.
+
+
+<<>>=
+GallWT2_0.sd <- GallWT2_0^2
+GallWT2_1.sd <- GallWT2_1^2
+GallWT3_0.sd <- GallWT3_0^2
+GallWT3_1.sd <- GallWT3_1^2
+@
+
+
+We now have all nodes of the aster graph depicted in Figure~\ref{graph:one} specified and can begin creating objects useable by $\astertwo$ functions.  We first specify the variables that appear in the graphical structure of the aster model, see Figure~\ref{graph:one}.
+
+
+<<>>= %"GallWT2_0","GallWT2_0.sd",
+vars <- c("I","LH1","LH2","LH3","persists2","PD2_0",
+  "PD2_1","GallWT2_1",
+  "GallWT2_1.sd",
+  "persists3","PD3_0","PD3_1","GallWT3_0",
+  "GallWT3_0.sd","GallWT3_1","GallWT3_1.sd")
+test <- cbind(Patho$Infect,LH1,LH2,LH3,persists2,
+  PD2_0,PD2_1,GallWT2_1,GallWT2_1.sd,
+  persists3,PD3_0,PD3_1,GallWT3_0,GallWT3_0.sd, 
+  GallWT3_1,GallWT3_1.sd,
+  Patho$InVir,Patho$Block,Patho$Fvert)  
+colnames(test)[!(colnames(test) %in% vars)] <- 
+  c("I","Invir","Block","Fvert")
+test <- as.data.frame(test)
+test$Fvert <- as.factor(test$Fvert)
+test$Block <- as.factor(test$Block)
+@
+
+
+%<<>>=
+%vars <- c("I","LH1","LH2","LH3","persists2","PD2_0",
+%  "PD2_1","GallWT2_0","GallWT2_1",
+%  "persists3","PD3_0","PD3_1","GallWT3_0",
+%  "GallWT3_1")
+%test <- cbind(Patho$Infect,LH1,LH2,LH3,persists2,
+%  PD2_0,PD2_1,GallWT2_0,GallWT2_1,
+%  persists3,PD3_0,PD3_1,GallWT3_0,GallWT3_1,
+%  Patho$Vir,Patho$Umaydis,Patho$InVir,Patho$Block,
+%  Patho$Pot,Patho$Fvert)  
+%colnames(test)[!(colnames(test) %in% vars)] <- 
+%  c("I","Vir","Umaydis","Invir","Block",
+%  "Pot","Fvert")
+%test <- as.data.frame(test)
+%redata <- reshape(test, timevar = "varb", 
+%  direction = "long", varying = list(vars), 
+%  times = as.factor(vars), v.names = "resp")
+%@
+
+
+The observed values corresponding to the nodes in the graphical structure depicted in Figure~\ref{graph:one} are now specified. We now specify the arrows and the distributions corresponding to these arrows. The names of the nodes were collected into a single character vector \texttt{vars}.  The \texttt{pred} vector indicates which node in \texttt{vars} precedes the node of \texttt{vars} in question.  The \texttt{group} vector indicates which nodes comprise a dependence group.  The \texttt{code} vector provides which exponential family, in the \texttt{families} list, is being used to model a particular node.  The \texttt{delta} vector specifies the directions of recession that are present. These are now specified.
+
+<<>>=
+pred <- c(0,1,1,1,3,5,5,7,7,4,10,10,11,11,12,12)
+group <- c(0,0,2,3,0,0,6,0,8,0,0,11,0,13,0,15)
+families <- list("bernoulli",fam.multinomial(3), 
+  fam.multinomial(2),"normal.location.scale")
+code <- c(1,2,2,2,1,3,3,4,4,1,3,3,4,4,4,4)
+delta <- rep(0, length(pred)) # direction of recession
+delta[grepl("PD2_0",vars)] <- -1
+@
+
+
+We now make the \texttt{asterdata} object which allows us to fit models, compare models, and estimate aster model parameters.
+
+
+<<>>=
+data <- asterdata(data = test, vars = vars, 
+  pred = pred, group = group, code = code, 
+  families = families, delta = delta)
+is.validasterdata(data)
+@
+
+
+In order to estimate fitness (gall weight), the locations of the \texttt{GallWT} nodes within the dataframe are specified.
+
+
+<<>>=
+infection <- as.numeric(grepl("I",data$redata$varb))
+GallWT <- as.numeric(grepl("GallWT",data$redata$varb))
+GallWT.sd <- as.numeric(grepl(".sd",data$redata$varb))
+GallWT.mean <- GallWT - GallWT.sd
+@
+
+We have now successfully converted the raw data into an analyzable form using \texttt{aster2} software.
+
+
+\section{Model comparison and selection} 
+
+Aster models are now fit and compared.   Models are selected via a Rao test at size $\alpha = 0.05$.  The Rao test statistic is given by
+$$
+  R = U(\hat\beta_{\text{null}})'I(\hat\beta_{\text{null}})^{-1}
+    U(\hat\beta_{\text{null}}),
+$$
+where $\hat\beta_{\text{null}}$ is the maximum likelihood estimate (MLE) of $\beta$ under the null (smaller) model, and $U$ and $I$ are the score function and Fisher information matrix under the alternative (larger) model.  The Rao test has a $\chi^2$ reference distribution with degrees of freedom equal to the difference in terms between the two models.  Backward selection is used to compare model. This procedure follows the same outline as \citet*{eck} for comparing aster models with dependency groups. All quantities are calculated using functionality in the \texttt{aster2} package. \\
+
+%We first compare the null model to a model that contains levels of \texttt{Fvert} as a predictor of expected Darwinian fitness. First note that the null model contains a block term. The submodel mean-value parameter vector $\tau_{\text{alt}}$ for the alternative model is estimated first. The estimate is given by $M_{\text{alt}}^TY$ where $M_{\text{alt}}$ is the model matrix for the alternative model and $Y$ is the response vector corresponding to the original data. The response vector $Y$ contains the realizations of every node in the aster graph for all individuals in the study. \\
+
+
+\begin{figure}
+\begin{center}
+\begin{tikzpicture}[descr/.style={fill=white},text height=1.5ex, text depth=0.25ex]
+\node (a) at (0,0) {$\theta$};
+\node (b) at (4,0) {$\varphi$};
+\node (c) at (8,0) {$\beta$};
+\node (d) at (0,-3) {$\xi$};
+\node (e) at (4,-3) {$\mu$};
+\node (f) at (8,-3) {$\tau$};
+\path[->,font=\scriptsize]
+([yshift= 5pt]a.east) edge node[above] {\text{aster transform}} ([yshift= 5pt]b.west)
+([yshift= -5pt]b.west) edge node[below] {\text{inverse aster transform}} ([yshift= -5pt]a.east)
+([yshift= 5pt]b.east) edge node[above] {} ([yshift= 5pt]c.west)
+([yshift= -5pt]c.west) edge node[below] {$\varphi = M\beta$} ([yshift= -5pt]b.east)
+([xshift= 5pt]a.south) edge node[right] {$\xi_j = c_j^{\prime}(\theta)$} ([xshift= 5pt]d.north)
+([xshift= -5pt]d.north) edge node[right] {} ([xshift= -5pt]a.south)
+([xshift= 5pt]b.south) edge node[right] {$\mu = \nabla c(\varphi)$} ([xshift= 5pt]e.north)
+([xshift= -5pt]e.north) edge node[right] {} ([xshift= -5pt]b.south)
+([xshift= 5pt]c.south) edge node[right] {$\tau = \nabla c_{sub}(\beta)$} ([xshift= 5pt]f.north)
+([xshift= -5pt]f.north) edge node[right] {} ([xshift= -5pt]c.south)
+([yshift= 5pt]e.east) edge node[above] {$\tau = M^T\mu$} ([yshift= 5pt]f.west)
+([yshift= -5pt]f.west) edge node[below] {} ([yshift= -5pt]e.east)
+([yshift= 5pt]d.east) edge node[above] {\text{multiplication}} ([yshift= 5pt]e.west)
+([yshift= -5pt]e.west) edge node[below] {\text{division}} ([yshift= -5pt]d.east);
+\end{tikzpicture}
+\end{center}
+\caption{A depiction of the transformations necessary to change parameterizations. Unlabeled arrows require \texttt{aster} or \astertwo software to perform the transformation.}
+\label{fig2}
+\end{figure}
+
+
+
+We start with the full model which contains linear and quadratic \texttt{Invir} terms, the \texttt{Fvert} and \texttt{Block} main effects, the \texttt{Fvert} and \texttt{Block} interaction term, and the \texttt{Fvert} interaction with the linear and quadratic \texttt{Invir} terms.  Our largest model includes these terms as interactions with the fitness and infection nodes. \\
+
+We will walk through the steps of our testing procedure and then construct a testing function that performs these steps.  We will test whether or not the \texttt{Fvert} and \texttt{Block} interaction terms belong in our final model for our walk through. We will first compute the score function.  The score function for our aster model is 
+\begin{equation} \label{score}
+M_{\text{alt}}^TY - \nabla c(M_{\text{alt}}\betahat_{\text{null}})
+\end{equation} 
+where $\betahat_{\text{null}}$ is the MLE for $\beta$ using the null model.  The left hand side of the subtraction in \eqref{score} is $\hat\tau_{\text{alt}} = M_{alt}^TY$ where $\hat\tau_{\text{alt}}$ is the MLE of the submodel mean-value parameter vector under the alternative model (see Figure~\ref{fig2}).  The right hand side of the subtraction in \eqref{score} is a bit more complicated.  The model matrix $M_{\text{alt}}$ has more columns than $M_{\text{null}}$ because it corresponds to a larger model with more parameters specified. Thus $\hat\beta_{\text{null}}$ is the MLE of the submodel canonical parameter vector under the null model with additional zero entries that align with the columns of $M_{\text{alt}}$ that are not in $M_{\text{null}}$.  If the $k$th column of $M_{\text{alt}}$ is not in $M_{\text{null}}$, then the $k$th entry of $\hat\beta_{\text{null}}$ is 0. \\
+
+
+We now obtain the submodel mean-value parameter vector $\tau_{\text{alt}}$ for the alternative model.
+
+<<FvertBlock, cache = TRUE>>=
+modmat.alt <- model.matrix(resp ~ varb + 
+  infection:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2) + I(Fvert:Block)) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2) + I(Fvert:Block)),
+  data = data$redata)
+tau.alt <- crossprod(modmat.alt, data$redata$resp)
+@
+
+
+The aster submodel mean-value parameter vector for the null model is now estimated.  This is done in three steps.  The first step is to estimate $\tau_{\text{null}}$ with $M_{\text{null}}^TY$ where $M_{\text{null}}$ is the model matrix corresponding to the null aster submodel with the \texttt{Fvert} and \texttt{Block} interaction removed.
+
+
+<<noFvertBlock, cache = TRUE>>=
+modmat.null <- model.matrix(resp ~ varb + 
+  infection:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2)) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2)),
+  data = data$redata)
+tau.null <- crossprod(modmat.null, data$redata$resp)
+@
+
+
+We then map this estimate of $\tau_{\text{null}}$ to the canonical parameterization using \\
+\texttt{transformUnconditional} with the model matrix $M_{\text{null}}$ specified, see Figure~\ref{fig2}. 
+
+
+<<betanoFvertBlock, cache = TRUE>>=
+beta.null <- transformUnconditional(tau.null, 
+  modmat.null, data, from = "tau", to = "beta")
+@
+
+
+Finally, we map back to the mean-parameterization using \texttt{transformUnconditional} with the model matrix $M_{\text{alt}}$ specified.  In order to perform this mapping, a number of 0s equal to the number of degrees of freedom in the Rao test are added to the estimated canonical parameter vector obtained above. This is equivalent to the hypothesis that the null model is preferred.
+
+
+<<taunoFvertBlock, cache = TRUE>>=
+foo <- grepl("I.Fvert.Block", colnames(modmat.alt))
+bar <- rep(0, length(foo))
+bar[!foo] <- beta.null
+bar[foo] <- 0
+tau.null <- transformUnconditional(bar, modmat.alt, 
+  data, from = "beta", to = "tau") 
+@
+
+
+We now have the quantities required to perform the Rao test.  We first build the score function and then calculate inverse Fisher information.
+
+
+<<testquantities, cache = TRUE>>=
+score <- tau.alt - tau.null
+Fisher.null <- jacobian(bar, data, 
+  transform = "unconditional", from = "beta", 
+  to = "tau", modmat = modmat.alt)
+@
+
+
+The Rao test statistic is now calculated and the p-value for this test is computed.
+
+<<firsttest, cache = TRUE>>=
+df <- nrow(tau.alt) - length(beta.null)
+Rao <- t(score) %*% ginv(Fisher.null) %*% score
+pval1 <- as.numeric(pchisq(Rao, df = df, lower = FALSE))
+pval1
+@
+
+We reject the hypothesis that the alternative (larger) model fits the data better than the smaller model at the $\alpha = 0.05$ level.  The \texttt{Fvert} and \texttt{Block} interaction terms are removed from our final model.  We now streamline this testing procedure in the \texttt{Rao\_test} function below.
+
+
+<<>>=
+Rao_test <- function(formula.null, formula.alt, 
+  data.null, data.alt)
+{
+  infection <- GallWT.mean <- NULL
+  if(grepl("infection", formula.null)) infection <- 
+    as.numeric(grepl("I", data.null$redata$varb))
+  if(grepl("GallWT", formula.null)){ 
+    GallWT <- as.numeric(grepl("GallWT",
+      data.null$redata$varb))
+    GallWT.sd <- as.numeric(grepl(".sd",
+      data.null$redata$varb))
+    GallWT.mean <- GallWT - GallWT.sd
+  }
+  modmat.null <- model.matrix(as.formula(formula.null), 
+    data = data.null$redata)
+  tau.null <- crossprod(modmat.null, 
+    data.null$redata$resp)
+  beta.null <- transformUnconditional(tau.null, 
+    modmat.null, data.null, from = "tau", to = "beta")  
+
+  infection <- GallWT.mean <- NULL
+  if(grepl("infection", formula.alt)) infection <- 
+    as.numeric(grepl("I", data.alt$redata$varb))
+  if(grepl("GallWT", formula.alt)){
+    GallWT <- as.numeric(grepl("GallWT",
+      data.alt$redata$varb))
+    GallWT.sd <- as.numeric(grepl(".sd",
+      data.alt$redata$varb))
+    GallWT.mean <- GallWT - GallWT.sd    
+  }
+  modmat.alt <- model.matrix(as.formula(formula.alt), 
+    data = data.alt$redata)
+  tau.alt <- crossprod(modmat.alt, 
+    data.alt$redata$resp)
+  
+  df <- nrow(tau.alt) - length(beta.null)
+  foo <- !(colnames(modmat.alt) %in% 
+    colnames(modmat.null))
+  bar <- rep(0, nrow(tau.alt))
+  bar[!foo] <- beta.null
+  tau.null <- transformUnconditional(bar, 
+    modmat.alt, data.null, from = "beta", to = "tau")
+  score <- tau.alt - tau.null
+  
+  Fisher.null <- jacobian(bar, data.null, 
+    transform = "unconditional", from = "beta", 
+    to = "tau", modmat = modmat.alt)
+  Rao <- t(score) %*% ginv(Fisher.null) %*% score
+  pval <- pchisq(Rao, df = df, lower = FALSE)
+  as.numeric(pval)
+  
+}
+
+## data.null and data.alt are declared
+data.null <- data.alt <- data
+@
+
+
+We now test whether or not the \texttt{Block} factor belongs in the final model. We first verify that our \texttt{Rao\_test} function is doing the right thing by determining whether or not it can replicate the results of our walk though test.
+
+<<Block, cache = TRUE>>=
+## first test the Block and Fvert interaction
+formula.null <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir +  Fvert*I(Invir^2)) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2))"
+formula.alt <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2)) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2)) + 
+  infection:(I(Fvert:Block)) + 
+  GallWT.mean:(I(Fvert:Block))"
+pval2 <- Rao_test(formula.null, formula.alt, 
+  data.null, data.alt)
+@
+
+We can see that the \texttt{Rao\_test} function is working properly.
+
+<<>>=
+all.equal(pval1, pval2)
+@
+
+We now show that \texttt{Block} and \texttt{Fvert} interactions do not belong in the final model when testing first at the infection node and then at the gall weight node.
+
+<<BlockFvertsub1, cache = TRUE>>=
+## we test the Fvert and Block interaction at the 
+## infection node
+formula.null <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2)) + 
+  GallWT.mean:(Block + Fvert + I(Fvert:Block) + 
+    Invir + I(Invir^2) + Fvert*Invir + 
+    Fvert*I(Invir^2))"
+formula.alt <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2)) + 
+  GallWT.mean:(Block + Fvert + I(Fvert:Block) + 
+    Invir + I(Invir^2) + Fvert*Invir + 
+    Fvert*I(Invir^2)) + 
+  infection:(I(Fvert:Block))"
+Rao_test(formula.null, formula.alt, data.null, data.alt)
+@
+
+<<BlockFvertsub2, cache = TRUE>>=
+## we test the Fvert and Block interaction at the 
+## gall weight nodes
+formula.null <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2)) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2))"
+formula.alt <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2)) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2)) + 
+  GallWT.mean:(I(Fvert:Block))"
+Rao_test(formula.null, formula.alt, data.null, data.alt)  
+@
+
+
+We now proceed with the test of whether or not the \texttt{Block} factor belongs in the final model.
+
+<<Blocksub1, cache = TRUE>>=
+## now test the Block main effect at the infection node
+formula.null <- "resp ~ varb + 
+  infection:(Fvert + Invir + I(Invir^2) + Fvert*Invir + 
+    Fvert*I(Invir^2)) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2))"
+formula.alt <- "resp ~ varb + 
+  infection:(Fvert + Invir + I(Invir^2) + Fvert*Invir + 
+    Fvert*I(Invir^2)) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2)) + 
+  infection:Block"
+Rao_test(formula.null, formula.alt, data.null, data.alt)    
+@
+
+<<Blocksub2, cache = TRUE>>=
+## now test the Block main effect at gall weight nodes
+formula.null <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2)) + 
+  GallWT.mean:(Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2))"
+formula.alt <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2)) + 
+  GallWT.mean:(Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2)) + 
+  GallWT.mean:Block"
+Rao_test(formula.null, formula.alt, data.null, data.alt)    
+@
+
+Therefore, the \texttt{Block} and \texttt{Fvert} interaction should not be included in the final model, but the \texttt{Block} main effect belongs at both nodes.  We now test whether or not the \texttt{Fvert} and \texttt{Invir} interaction terms should be included in the final model.
+
+%<<FvertInvir, cache = TRUE, eval = FALSE, echo = FALSE>>=
+%formula.null <- "resp ~ varb + 
+%  infection:(Block + Fvert + Invir + I(Invir^2)) + 
+%  GallWT.mean:(Block + Fvert + Invir + I(Invir^2))"
+%formula.alt <- "resp ~ varb + 
+%  infection:(Block + Fvert + Invir + I(Invir^2)) + 
+%  GallWT.mean:(Block + Fvert + Invir + I(Invir^2)) + 
+%  infection:(Fvert*Invir + Fvert*I(Invir^2)) + 
+%  GallWT.mean:(Fvert*Invir + Fvert*I(Invir^2))"
+%Rao_test(formula.null, formula.alt, data.null, data.alt)
+%@
+
+<<FvertInvirsub1, cache = TRUE>>=
+## now test the Fvert and quadratic Invir interaction 
+## at the infection node
+formula.null <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2))"
+formula.alt <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2)) + 
+  infection:(Fvert*I(Invir^2))"
+Rao_test(formula.null, formula.alt, data.null, data.alt)
+@
+
+
+<<FvertInvirsub2, cache = TRUE>>=
+## now test the Fvert and quadratic Invir interaction 
+## at the gall weight nodes
+formula.null <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir)"
+formula.alt <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir) + 
+  GallWT.mean:(Fvert*I(Invir^2))"
+Rao_test(formula.null, formula.alt, data.null, data.alt)
+@
+
+
+<<FvertInvirsub3, cache = TRUE>>=
+## now test the Fvert and Invir interaction at 
+## the infection node
+formula.null <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir + I(Invir^2)) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir)"
+formula.alt <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir + I(Invir^2)) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir) + 
+  infection:(Fvert*Invir)"
+Rao_test(formula.null, formula.alt, data.null, data.alt)
+@
+
+
+\newpage
+<<FvertInvirsub4, cache = TRUE>>=
+## now test the Fvert and Invir interaction at 
+## the gall weight nodes
+formula.null <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir + I(Invir^2)) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2))"
+formula.alt <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir + I(Invir^2)) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2)) + 
+  GallWT.mean:(Fvert*Invir)"
+Rao_test(formula.null, formula.alt, data.null, data.alt)  
+@
+
+Therefore, the \texttt{Fvert} and \texttt{Invir} interaction terms should not be included in the final model.  We now test whether or not the quadratic \texttt{Invir} term belongs in our final model.
+
+
+<<Invirquad, cache = TRUE>>=
+## now test the quadratic Invir term at the infection 
+## node
+formula.null <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2))"
+formula.alt <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2)) + 
+  infection:(I(Invir^2))"
+Rao_test(formula.null, formula.alt, data.null, data.alt)
+@
+
+
+\newpage
+<<Invirquad2, cache = TRUE>>=
+## now test the quadratic Invir term at the gall weight 
+## nodes
+formula.null <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir) + 
+  GallWT.mean:(Block + Fvert + Invir)"
+formula.alt <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir) + 
+  GallWT.mean:(Block + Fvert + Invir) + 
+  GallWT.mean:(I(Invir^2))"
+Rao_test(formula.null, formula.alt, data.null, data.alt)
+@
+
+
+We remove the quadratic \texttt{Invir} term at the infection node and keep the quadratic \texttt{Invir} term at the gall weight node.  We now test the linear \texttt{Invir} at the infection node.
+
+<<Invirinfect, cache = TRUE>>=
+## now test the linear Invir term at the infection node
+formula.null <- "resp ~ varb + 
+  infection:(Block + Fvert) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2))"
+formula.alt <- "resp ~ varb + 
+  infection:(Block + Fvert) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2)) + 
+  infection:(Invir)"
+Rao_test(formula.null, formula.alt, data.null, data.alt)
+@
+
+The linear \texttt{Invir} term at the infection node remains in the final model.  We now test whether or not the \texttt{Fvert} terms belong to the final model.
+
+\newpage
+<<Fvert, cache = TRUE>>=
+## now test the Fvert term at the infection node
+formula.null <- "resp ~ varb + 
+  infection:(Block + Invir) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2))"
+formula.alt <- "resp ~ varb + 
+  infection:(Block + Invir) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2)) + 
+  infection:(Fvert)"
+Rao_test(formula.null, formula.alt, data.null, data.alt) 
+@
+
+
+<<Fvert2, cache = TRUE>>=
+## now test the Fvert term at the gall weight nodes
+formula.null <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir) + 
+  GallWT.mean:(Block + Invir + I(Invir^2))"
+formula.alt <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir) + 
+  GallWT.mean:(Block + Invir + I(Invir^2)) + 
+  GallWT.mean:(Fvert)"
+Rao_test(formula.null, formula.alt, data.null, data.alt)  
+@
+
+We keep the \texttt{Fvert} term at the infection node and remove the \texttt{Fvert} term at the gall weight node. In accordance with following model hierarchy, there are no more terms to be tested.  Our final model includes the \texttt{Block} factor and the linear \texttt{Invir} terms at both the infection and fitness nodes. Our final model also includes a quadratic \texttt{Invir} term at the fitness node and the \texttt{Fvert} factor at the infection node. \\
+
+Preliminary analyses (and background knowledge) suggest that the second and third levels of the \texttt{Fvert} factor could be combined into a single level.  We now test whether or not this is the case. The hypothesis testing procedure corresponding to this test is slightly different than the preceding tests. We first combine the second and third levels together in a new dataframe and then create a new \texttt{asterdata} object corresponding to the changes made to the \texttt{Fvert} factor.  
+
+<<>>=
+test.null <- test
+test.null <- test.null %>% 
+  mutate(Fvert = as.factor(ifelse(Fvert != 0, 1, 0)))
+data.null <- asterdata(data = test.null, vars = vars, 
+  pred = pred, group = group, code = code, 
+  families = families, delta = delta)
+is.validasterdata(data.null)
+@
+
+
+We now test whether or not the \texttt{Fvert} levels should be combined.
+
+<<Fvert23, cache = TRUE>>=
+## Test whether or not the second and third levels of 
+## Fvert should be combined into a single level
+formula.null <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir) + 
+  GallWT.mean:(Block + Invir + I(Invir^2))"
+formula.alt <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir) + 
+  GallWT.mean:(Block + Invir + I(Invir^2))"
+Rao_test(formula.null, formula.alt, 
+  data.null = data.null, data.alt = data)
+@
+
+
+Therefore, the second and third levels of \texttt{Fvert} should not be combined into a single level. We close this section with a table (Table~\ref{Tab:selection}) that summarises the results of the backward selection procedure that we used to arrive at our final model.
+
+
+\begin{table}[h!]
+\tiny
+\begin{center}
+\begin{tabular}{llll}
+model & infection node terms & gall weight node terms & p-value \\
+\hline
+% test Block
+null  & Fvert, Invir, Invir$^2$, Fvert$*$Invir, Fvert$*$Invir$^2$ 
+      & Block, Fvert, Invir, Invir$^2$, Fvert$*$Invir, Fvert$*$Invir$^2$ & \\
+alt   & {\bf Block}, Fvert, Invir, Invir$^2$, Fvert$*$Invir, Fvert$*$Invir$^2$ 
+      & Block, Fvert, Invir, Invir$^2$, Fvert$*$Invir, Fvert$*$Invir$^2$ & 1.48e-5 \\
+      \hline
+null  & Block, Fvert, Invir, Invir$^2$, Fvert$*$Invir, Fvert$*$Invir$^2$ 
+      & Fvert, Invir, Invir$^2$, Fvert$*$Invir, Fvert$*$Invir$^2$ & \\
+alt   & Block, Fvert, Invir, Invir$^2$, Fvert$*$Invir, Fvert$*$Invir$^2$ 
+      & {\bf Block}, Fvert, Invir, Invir$^2$, Fvert$*$Invir, Fvert$*$Invir$^2$ & 0.014 \\
+      \hline
+% test Fvet and quadratic Invir interaction
+null  & Block, Fvert, Invir, Invir$^2$, Fvert$*$Invir 
+      & Block, Fvert, Invir, Invir$^2$, Fvert$*$Invir, Fvert$*$Invir$^2$ & \\
+alt   & Block, Fvert, Invir, Invir$^2$, Fvert$*$Invir, {\bf Fvert$*$Invir$^2$}
+      & Block, Fvert, Invir, Invir$^2$, Fvert$*$Invir, Fvert$*$Invir$^2$ & 0.74 \\
+      \hline      
+null  & Block, Fvert, Invir, Invir$^2$, Fvert$*$Invir 
+      & Block, Fvert, Invir, Invir$^2$, Fvert$*$Invir & \\
+alt   & Block, Fvert, Invir, Invir$^2$, Fvert$*$Invir 
+      & Block, Fvert, Invir, Invir$^2$, Fvert$*$Invir, {\bf Fvert$*$Invir$^2$} & 0.97 \\
+      \hline    
+% test Fvet and Invir interaction
+null  & Block, Fvert, Invir, Invir$^2$  
+      & Block, Fvert, Invir, Invir$^2$, Fvert$*$Invir & \\
+alt   & Block, Fvert, Invir, Invir$^2$, {\bf Fvert$*$Invir}
+      & Block, Fvert, Invir, Invir$^2$, Fvert$*$Invir & 0.73 \\
+      \hline
+null  & Block, Fvert, Invir, Invir$^2$  
+      & Block, Fvert, Invir, Invir$^2$ & \\
+alt   & Block, Fvert, Invir, Invir$^2$
+      & Block, Fvert, Invir, Invir$^2$, {\bf Fvert$*$Invir} & 0.92 \\
+      \hline
+% test quadratic Invir 
+null  & Block, Fvert, Invir
+      & Block, Fvert, Invir, Invir$^2$ & \\
+alt   & Block, Fvert, Invir, {\bf Invir$^2$}
+      & Block, Fvert, Invir, Invir$^2$ & 0.053 \\
+      \hline
+null  & Block, Fvert, Invir
+      & Block, Fvert, Invir & \\
+alt   & Block, Fvert, Invir 
+      & Block, Fvert, Invir, {\bf Invir$^2$} & 1.14e-6 \\
+      \hline
+% test linear Invir 
+null  & Block, Fvert, 
+      & Block, Fvert, Invir, Invir$^2$ & \\
+alt   & Block, Fvert, {\bf Invir}
+      & Block, Fvert, Invir, Invir$^2$ & $\approx 0$ \\
+      \hline
+% test Fvert 
+null  & Block, Invir
+      & Block, Fvert, Invir, Invir$^2$ & \\
+alt   & Block, {\bf Fvert}, Invir
+      & Block, Fvert, Invir, Invir$^2$ & $\approx 0$ \\
+      \hline
+null  & Block, Fvert, Invir
+      & Block, Invir, Invir$^2$ & \\
+alt   & Block, Fvert, Invir
+      & Block, {\bf Fvert}, Invir, Invir$^2$ & 0.85 \\
+      \hline
+\end{tabular}
+\end{center}
+\caption{Summary of our model selection procedure. Our final model includes the 
+\texttt{Block} factor and the linear \texttt{Invir} terms at both the infection and 
+gall weight nodes. Our final model also includes a quadratic \texttt{Invir} term at 
+the gall weight node and the \texttt{Fvert} factor at the infection node.}
+\label{Tab:selection}
+\end{table}
+
+
+<<maketable, echo = FALSE, eval = FALSE>>=
+## make table in R and write it to txt
+dat_test1 <- data.frame(model = c("null", "alt"), 
+                  infection_node_terms = c("Fvert; Invir; Invir^2; Fvert*Invir; Fvert*Invir^2", 
+                                           "Block; Fvert; Invir; Invir^2; Fvert*Invir; Fvert*Invir^2"),
+                  gall_weight_node_terms = c("Block; Fvert; Invir; Invir^2; Fvert*Invir; Fvert*Invir^2", 
+                                             "Block; Fvert; Invir; Invir^2; Fvert*Invir; Fvert*Invir^2"),
+                  p_value = c("","1.458e-5")
+)
+
+dat_test2 <- data.frame(model = c("null", "alt"), 
+                        infection_node_terms = c("Block; Fvert; Invir; Invir^2; Fvert*Invir; Fvert*Invir^2", 
+                                                 "Block; Fvert; Invir; Invir^2; Fvert*Invir; Fvert*Invir^2"),
+                        gall_weight_node_terms = c("Fvert; Invir; Invir^2; Fvert*Invir; Fvert*Invir^2", 
+                                                   "Block; Fvert; Invir; Invir^2; Fvert*Invir; Fvert*Invir^2"),
+                        p_value = c("","0.014")
+)
+
+dat_test3 <- data.frame(model = c("null", "alt"), 
+                        infection_node_terms = c("Block; Fvert; Invir; Invir^2; Fvert*Invir", 
+                                                 "Block; Fvert; Invir; Invir^2; Fvert*Invir; Fvert*Invir^2"),
+                        gall_weight_node_terms = c("Block; Fvert; Invir; Invir^2; Fvert*Invir; Fvert*Invir^2", 
+                                                   "Block; Fvert; Invir; Invir^2; Fvert*Invir; Fvert*Invir^2"),
+                        p_value = c("","0.74")
+)
+
+dat_test4 <- data.frame(model = c("null", "alt"), 
+                        infection_node_terms = c("Block; Fvert; Invir; Invir^2; Fvert*Invir", 
+                                                 "Block; Fvert; Invir; Invir^2; Fvert*Invir"),
+                        gall_weight_node_terms = c("Block; Fvert; Invir; Invir^2; Fvert*Invir", 
+                                                   "Block; Fvert; Invir; Invir^2; Fvert*Invir; Fvert*Invir^2"),
+                        p_value = c("","0.97")
+)
+ 
+dat_test5 <- data.frame(model = c("null", "alt"), 
+                        infection_node_terms = c("Block; Fvert; Invir; Invir^2", 
+                                                 "Block; Fvert; Invir; Invir^2; Fvert*Invir"),
+                        gall_weight_node_terms = c("Block; Fvert; Invir; Invir^2; Fvert*Invir", 
+                                                   "Block; Fvert; Invir; Invir^2; Fvert*Invir"),
+                        p_value = c("","0.73")
+)                   
+
+dat_test6 <- data.frame(model = c("null", "alt"), 
+                        infection_node_terms = c("Block; Fvert; Invir; Invir^2", 
+                                                 "Block; Fvert; Invir; Invir^2"),
+                        gall_weight_node_terms = c("Block; Fvert; Invir; Invir^2", 
+                                                   "Block; Fvert; Invir; Invir^2; Fvert*Invir"),
+                        p_value = c("","0.92")
+)
+
+dat_test7 <- data.frame(model = c("null", "alt"), 
+                        infection_node_terms = c("Block; Fvert; Invir", 
+                                                 "Block; Fvert; Invir; Invir^2"),
+                        gall_weight_node_terms = c("Block; Fvert; Invir; Invir^2", 
+                                                   "Block; Fvert; Invir; Invir^2"),
+                        p_value = c("","0.053")
+)
+
+dat_test8 <- data.frame(model = c("null", "alt"), 
+                        infection_node_terms = c("Block; Fvert; Invir", 
+                                                 "Block; Fvert; Invir"),
+                        gall_weight_node_terms = c("Block; Fvert; Invir", 
+                                                   "Block; Fvert; Invir; Invir^2"),
+                        p_value = c("","1.14e-6")
+)
+
+dat_test9 <- data.frame(model = c("null", "alt"), 
+                        infection_node_terms = c("Block; Fvert", 
+                                                 "Block; Fvert; Invir"),
+                        gall_weight_node_terms = c("Block; Fvert; Invir; Invir^2", 
+                                                   "Block; Fvert; Invir; Invir^2"),
+                        p_value = c("","~0")
+)
+
+dat_test10 <- data.frame(model = c("null", "alt"), 
+                        infection_node_terms = c("Block; Invir", 
+                                                 "Block; Fvert; Invir"),
+                        gall_weight_node_terms = c("Block; Fvert; Invir; Invir^2", 
+                                                   "Block; Fvert; Invir; Invir^2"),
+                        p_value = c("","~0")
+)
+
+dat_test11 <- data.frame(model = c("null", "alt"), 
+                         infection_node_terms = c("Block; Fvert; Invir", 
+                                                  "Block; Fvert; Invir"),
+                         gall_weight_node_terms = c("Block; Invir; Invir^2", 
+                                                    "Block; Fvert; Invir; Invir^2"),
+                         p_value = c("","0.85")
+)
+
+dat <- rbind(dat_test1, dat_test2, dat_test3, dat_test4, dat_test5, dat_test6,
+             dat_test7, dat_test8, dat_test9, dat_test10, dat_test11)
+write.table(dat, file = "tester.txt", sep = ",", quote = FALSE, row.names = F)
+@
+
+
+
+
+\section{Fitness landscape}
+
+In order to build a fitness landscape, we create 50 hypothetical individuals possessing distinct values of \texttt{Invir} that were suggested by our observed data.  The fitness landscape will consist of 2 lines, one for both levels of the \texttt{Fvert} factor.  The hypothetical individuals used to form each plot posses the same 50 \texttt{Invir} values for a total of 100 individuals.  The dataset for these hypothetical individuals is called \texttt{cand}, and it is constructed below. Note that we will only display fitness landscapes for the first level of the \texttt{Block} factor. This variable is not of scientific interest, is only relevant to this experiment, and only has a linear effect that does not interact with any other quntities of scientific interest. The latter point means that only one level of the \texttt{Block} factor is necessary for interpreting the relation between estimated expected fitness and \texttt{Invir} and \texttt{Fvert}. That being said, we will include both levels of \texttt{Block} when constructing fitness landscapes since statistical quantities (canonical parameter vectors, model matrices, etc) include both levels of \texttt{Block}.
+
+
+<<hypoindiv, cache = TRUE>>=
+nInvir <- 50
+nFvertlevels <- 3
+nBlock <- 2
+lwr <- round(min(unique(test$Invir)))
+upr <- round(max(unique(test$Invir)))
+cand.Invir <- rep(seq(from = lwr, to = upr, 
+  length = nInvir), nFvertlevels)
+cand.Fvert <- rep(seq(from = 0, to = nFvertlevels - 1), 
+  each = nInvir)
+cand <- cbind(cand.Fvert, cand.Invir, 
+  rep(1:nBlock, each = nInvir * nFvertlevels))
+cand <- as.data.frame(cand)
+colnames(cand) <- c("Fvert","Invir","Block")
+cand$Block <- as.factor(cand$Block)
+cand$root <- 1
+blah <- test[1:(nFvertlevels*nInvir*nBlock), 
+  colnames(test) %in% vars]
+cand <- cbind(cand, blah)
+cand <- as.data.frame(cand)
+cand$Fvert <- as.factor(cand$Fvert)
+@
+
+<<echo = FALSE, eval = FALSE>>=
+save(cand, file = "hypothetical.rda")
+@
+
+
+We now construct a corresponding \texttt{asterdata} object and specify which nodes relate to Darwinian fitness.
+
+
+<<datamnew, cache = TRUE>>=
+data.mnew <- asterdata(cand, vars = vars, 
+  pred = pred, group = group, code = code, 
+  delta = delta, families = families)
+GallWT.mnew <- as.numeric(grepl("GallWT", 
+  data.mnew$redata$varb))
+GallWT.mnew.sd <- as.numeric(grepl(".sd", 
+  data.mnew$redata$varb))
+GallWT.mnew.mean <- GallWT.mnew - 
+  GallWT.mnew.sd
+infection.mnew <- as.numeric(grepl("I", 
+  data.mnew$redata$varb))
+data.mnew$redata <- transform(data.mnew$redata, 
+  GallWT.mean = GallWT.mnew.mean, 
+  GallWT.sd = GallWT.mnew.sd, 
+  infection = infection.mnew)
+@
+
+
+The model matrix using the aster model formula for our final aster model which corresponds to the hypothetical individuals, $M_{\text{new}}$ is now constructed.  This model matrix plays an important role in estimating expected Darwinian fitness.
+
+
+<<>>=
+formula.final <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir) + 
+  GallWT.mean:(Block + Invir + I(Invir^2))"
+modmat.mnew <- model.matrix(as.formula(formula.final), 
+  data = data.mnew$redata)
+@
+
+
+Expected Darwinian fitness is now estimated for every hypothetical individual.  The parameterization of expected Darwinian fitness is a function, in this case a sum, of aster model mean-value parameter values, see $\mu$ in Figure~\ref{fig2}.  The $\mu$ parameters are a function of the $\phi$ parameters and we estimate $\phi$ with $\hat{\phi}_{\text{new}} = M_{\text{new}}\hat{\beta}$ where $\hat{\beta}$ is the estimated aster submodel canonical parameter vector for our final model.  The \texttt{transformSaturated} function in the \texttt{aster2} package maps $\hat{\phi}_{\text{new}}$ to $\hat{\mu}_{\text{new}}$.
+
+
+<<mus, cache = TRUE>>=
+## now get mean-value estimates
+infection <- GallWT.mean <- NULL
+if(grepl("infection", formula.final)) infection <- 
+  as.numeric(grepl("I", data$redata$varb))
+if(grepl("GallWT", formula.final)){
+  GallWT <- 
+    as.numeric(grepl("GallWT",data$redata$varb))
+  GallWT.sd <- as.numeric(grepl(".sd",data$redata$varb))
+  GallWT.mean <- GallWT - GallWT.sd    
+}
+modmat.data <- model.matrix(as.formula(formula.final), 
+  data = data$redata)
+tau.hat <- crossprod(modmat.data, data$redata$resp)
+beta.hat <- transformUnconditional(tau.hat, 
+  modmat.data, data, from = "tau", to = "beta")
+stat <- modmat.mnew %*% beta.hat
+mus <- transformSaturated(stat, data.mnew, 
+  from = "phi", to = "mu")
+@
+
+Expected Darwinian fitness is estimated by summing over the components of $\hat{\mu}_{\text{new}}$ which correspond to spore mass.
+
+<<>>=
+ind <- which(GallWT.mnew.mean == 1)
+qux <- matrix(mus[ind], 
+  nrow = nFvertlevels*nInvir*nBlock, ncol = 3)
+sums <- as.numeric(apply(qux, 1, sum))
+@
+
+We now estimate 95\% confidence bands for estimated expected spore mass.  These confidence bands are of the form
+$$  
+  A\hat{\mu} \pm 1.96 * \hat{\text{se}}(A\hat{\mu})
+$$
+where the matrix $A$ specifies the sum of components of $\hat{\mu}$ that correspond to \emph{GallWT} nodes.  In other words, $A\hat{\mu}$ is estimated expected Darwinian fitness.  We already have computed estimated expected Darwinian fitness, the code below finds the estimated variance of the components of $\hat{\mu}$ that correspond to estimated expected Darwinian fitness.  This variance is calculated using the \texttt{jacobian} function in the \texttt{aster2} package. In this calculation we consider the map $\phi$ to $\mu$ in Figure~\ref{fig2}. The indices used to create \texttt{fubar} are the indices of the components of $\hat{\mu}$ that correspond to estimated expected Darwinian fitness for the hypothetical individuals.  
+
+<<musjacob, cache = TRUE>>=
+mus.jacob <- jacobian(stat, data.mnew, 
+  transform = "saturated", from = "phi", to = "mu",
+  modmat = modmat.mnew)
+fubar <- mus.jacob[ind,ind]
+@
+
+
+We now estimate the standard error of estimated expected Darwinian fitness by building $A$.  There are 900 values of $\hat{\mu}$ that correspond to estimated expected Darwinian fitness of the hypothetical individuals.  There are 3 estimated expected \emph{GallWT} parameters for all 300 hypothetical individuals.  Thus $A \in \R^{300 \times 900}$ where the placement of a $1$ in row $i$ of $A$ corresponds to one of the entries of $\hat{\mu}$ that is an estimated expected value of \emph{GallWT} for individual $i$.
+
+
+<<>>=
+A <- matrix(0, nrow = nFvertlevels*nInvir*nBlock, 
+  ncol = 3*nFvertlevels*nInvir*nBlock)
+for(i in 1:(nFvertlevels*nInvir*nBlock)){
+  A[i,i] <- A[i,i+nFvertlevels*nInvir*nBlock] <- 
+    A[i,i+2*nFvertlevels*nInvir*nBlock] <- 1
+}
+barbaz <- A %*% fubar %*% t(A)
+var <- diag(barbaz)
+se <- sqrt(var) / sqrt(nrow(test))
+crit <- qnorm(1-0.025) * se
+@
+
+
+The matrix \texttt{barbaz} in the above code is the estimated covariance matrix of estimated expected Darwinian fitness. These derivations are supported by the Delta method where the asymptotic distribution of estimated expected Darwinian fitness is given by
+$$  
+  \sqrt{n}\left(A\hat{\mu} - A\mu\right) 
+    \longrightarrow N\left(0,\; A\Sigma_{\mu}A^T\right) 
+$$
+where \texttt{barbaz} estimates $A\Sigma_{\mu}A^T$ and $\Sigma_{\mu}$ is estimated by \texttt{fubar}.  The code below creates the fitness landscapes with confidence bands.
+
+<<eval = FALSE>>=
+cand_block1 <- cand %>% mutate(sums, sums, 
+  lower = sums - crit, upper = sums + crit) %>% 
+  filter(Block == 1)
+ggplot(data = cand_block1) +
+  geom_line(mapping = aes(x = Invir, y = sums, 
+    group=Fvert, color=Fvert)) + 
+  geom_ribbon(mapping = aes(x = Invir, ymin = lower, 
+    ymax = upper, group=Fvert, color=Fvert), 
+    alpha = 0.5) +
+  labs(x="Invir", y="Expected spore mass", 
+    color="Fvert", title = "Fitness landscape") + 
+  facet_wrap(~Block) + 
+  theme_minimal() + 
+  scale_x_continuous(minor_breaks = NULL) + 
+  scale_y_continuous(minor_breaks = NULL)
+@
+
+
+\newpage
+\begin{figure}[h!]
+\begin{center}
+<<fitness-finalmodel, echo = FALSE, fig.margin = TRUE>>=
+cand_block1 <- cand %>% mutate(sums, sums, 
+  lower = sums - crit, upper = sums + crit) %>% 
+  filter(Block == 1)
+ggplot(data = cand_block1) +
+  geom_line(mapping = aes(x = Invir, y = sums, 
+    group=Fvert, color=Fvert)) + 
+  geom_ribbon(mapping = aes(x = Invir, ymin = lower, 
+    ymax = upper, group=Fvert, color=Fvert), 
+    alpha = 0.5) +
+  labs(x="Invir", y="Expected spore mass", 
+    color="Fvert", title = "Fitness landscape") + 
+  facet_wrap(~Block) + 
+  theme_minimal() + 
+  scale_x_continuous(minor_breaks = NULL) + 
+  scale_y_continuous(minor_breaks = NULL)
+@
+\end{center}
+\caption{The fitness landscape with standard errors corresponding to our final 
+  model for hypothetical individuals possessing \texttt{Invir} values suggested 
+  by the original data.  The model contains the following terms at the gall 
+  weight (fitness) node: 
+  a linear term for \texttt{Block} and \texttt{Invir}, 
+    and a quadratic term for \texttt{Invir}.   
+  The model contains the following terms at the infection node: 
+      a linear term for \texttt{Block}, \texttt{Fvert} and \texttt{Invir}.
+  The confidence bands are at the 95\% confidence level. 
+}
+\label{fitlandfinal}
+\end{figure}
+
+<<eval = FALSE, echo = FALSE>>=
+cand_block1 <- cand_block1 %>% rename("GallWT" = sums)
+Final_model_raw_data <- cand_block1
+foo <- split(Final_model_raw_data, f = as.factor(Final_model_raw_data$Fvert))
+max_Invir <- do.call(rbind, lapply(foo, function(xx) xx[which.max(xx$GallWT), ]))
+write_csv(max_Invir, path = "~/rese")
+@
+
+%The value of \emph{Invir} which maximizes the expected Darwinian fitness for 
+%both \emph{Fvert} treatment groups is estimated to be the same.  The code 
+%below, finds the value of \emph{Invir} which maximizes estimated expected 
+%Darwinian fitness.
+
+
+
+\newpage
+\section{Additional fitness landscapes}
+
+We now streamline the process of constructing a fitness landscape with a fitting function \texttt{fitness\_landscape} using \texttt{ggplot} functionality (the code is included in the .Rnw file).  We use the \texttt{fitness\_landscape} function to view some other (possibly) interesting fitness landscapes.
+
+
+<<echo = FALSE>>=
+# build some more fitness landscapes
+fitness_landscape <- function(formula, data, mat, 
+  nInvir, alpha = 0.05)
+{
+  
+  infection <- GallWT.mean <- NULL
+  if(grepl("infection", formula)) infection <- 
+    as.numeric(grepl("I", data$redata$varb))
+  if(grepl("GallWT", formula)){ 
+    GallWT <- as.numeric(grepl("GallWT", 
+      data$redata$varb))
+    GallWT.sd <- as.numeric(grepl(".sd", 
+      data$redata$varb))
+    GallWT.mean <- GallWT - GallWT.sd
+  }
+  modmat <- model.matrix(as.formula(formula), 
+    data = data$redata)
+  tau <- crossprod(modmat, data$redata$resp)
+  beta <- transformUnconditional(tau, modmat, 
+    data, from = "tau", to = "beta")
+  Invir.unique <- unique(data$redata$Invir)
+  lwr <- round(min(Invir.unique))
+  upr <- round(max(Invir.unique))
+  Fvert.levels <- as.numeric(as.character(
+    levels(data$redata$Fvert)))
+  nFvert <- length(Fvert.levels)
+  cand.Invir <- rep(seq(from = lwr, to = upr, 
+    length = nInvir), nFvert)
+  cand.Fvert <- rep(Fvert.levels, each = nInvir)
+  cand <- cbind(cand.Fvert, cand.Invir)
+  
+  ## extract parameters from global environment
+  ## add Block if necessary
+  nBlock <- 1
+  if(any(grepl("Block", formula))){
+    nBlock <- 2
+    cand <- rbind(cand, cand)
+    cand <- cbind(cand, rep(c(1,2), each = nrow(cand)/2))
+    cand <- as.data.frame(cand)
+    colnames(cand) <- c("Fvert","Invir","Block")
+    cand$root <- 1
+    blah <- mat[1:(nFvert*nInvir*nBlock), 
+      colnames(mat) %in% vars]
+    cand <- cbind(cand, blah)
+    cand <- as.data.frame(cand)
+    cand$Fvert <- as.factor(cand$Fvert)
+    cand$Block <- as.factor(cand$Block)
+  }
+  if(!any(grepl("Block", formula))){
+    cand <- as.data.frame(cand)
+    colnames(cand) <- c("Fvert","Invir")
+    blah <- mat[1:(nFvert*nInvir), 
+      colnames(mat) %in% vars]
+    cand <- cbind(cand, blah)
+    cand <- as.data.frame(cand)
+    cand$Fvert <- as.factor(cand$Fvert)
+  }
+  cand$root <- 1
+  
+  ## extracts parameters from the global environment
+  data.mnew <- asterdata(cand, vars = vars, pred = pred, 
+    group = group, code = code, delta = delta, 
+    families = families)
+
+  # get infection and fitness nodes for hypothetical 
+  # individuals data
+  infection <- GallWT.mean <- NULL
+  if(grepl("infection", formula)) infection <- 
+    as.numeric(grepl("I", data.mnew$redata$varb))
+  if(grepl("GallWT", formula)){ 
+    GallWT <- as.numeric(grepl("GallWT", 
+      data.mnew$redata$varb))
+    GallWT.sd <- as.numeric(grepl(".sd", 
+      data.mnew$redata$varb))
+    GallWT.mean <- GallWT - GallWT.sd
+  }  
+  
+  if(is.null(infection)){
+    data.mnew$redata <- transform(data.mnew$redata, 
+      GallWT.mean = GallWT.mean)      
+  }
+  if(!is.null(infection)){
+    data.mnew$redata <- transform(data.mnew$redata, 
+      GallWT.mean = GallWT.mean, 
+      infection = infection)
+  }
+  modmat.mnew <- model.matrix(as.formula(formula), 
+    data = data.mnew$redata)
+  stat <- modmat.mnew %*% beta 
+  mus <- transformSaturated(stat, data.mnew, 
+    from = "phi", to = "mu")
+  ind <- which(GallWT.mean == 1)
+  qux <- matrix(mus[ind], nrow = nFvert*nInvir*nBlock, 
+    ncol = 3)
+  sums <- as.numeric(apply(qux, 1, sum))
+  
+  mus.jacob <- jacobian(stat, data.mnew, 
+    transform = "saturated", modmat = modmat.mnew, 
+    from = "phi", to = "mu")
+  fubar <- mus.jacob[ind,ind]
+  A <- matrix(0, nrow = nFvert*nInvir*nBlock, 
+    ncol = 3*nFvert*nInvir*nBlock)
+  for(i in 1:(nFvert*nInvir*nBlock)){
+    A[i,i] <- A[i,i+nFvert*nInvir*nBlock] <- 
+      A[i,i+2*nFvert*nInvir*nBlock] <- 1
+  }
+  barbaz <- A %*% fubar %*% t(A)
+  var <- diag(barbaz)
+  se <- sqrt(var) / sqrt(nrow(mat))
+  crit <- qnorm(1-alpha/2) * se
+  cand <- cand %>% mutate(sums, sums, 
+    lower = sums - crit, upper = sums + crit)
+
+  p <- NULL
+  if(any(grepl("Block", formula))){
+    cand <- cand %>% filter(Block == 1)
+    p <- ggplot(data = cand) +
+      geom_line(mapping = aes(x = Invir, y = sums, 
+        group=Fvert, color=Fvert)) + 
+      geom_ribbon(mapping = aes(x = Invir, 
+        ymin = lower, ymax = upper, group=Fvert, 
+        color=Fvert), alpha = 0.5) +
+      labs(x="Invir", y="Expected spore mass", 
+        color="Fvert", title = "Fitness landscape") + 
+      facet_wrap(~Block) + theme_minimal() + 
+      scale_x_continuous(minor_breaks = NULL) + 
+      scale_y_continuous(minor_breaks = NULL)
+  }
+  if(!any(grepl("Block", formula))){
+    p <- ggplot(data = cand) +
+      geom_line(mapping = aes(x = Invir, y = sums, 
+        group=Fvert, color=Fvert)) + 
+      geom_ribbon(mapping = aes(x = Invir, 
+        ymin = lower, ymax = upper, group=Fvert, 
+        color=Fvert), alpha = 0.5) +
+      labs(x="Invir", y="Expected spore mass", 
+        color="Fvert", title = "Fitness landscape") + 
+      theme_minimal() + 
+      scale_x_continuous(minor_breaks = NULL) + 
+      scale_y_continuous(minor_breaks = NULL)
+  }
+  return(p)
+}
+@
+
+
+\begin{figure}[h]
+\begin{center}
+<<sameplot, cache = TRUE, fig.margin = TRUE, out.height = "9cm", out.width = "9cm">>=
+formula1 <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir) + 
+  GallWT.mean:(Block + Invir + I(Invir^2))"
+fitness_landscape(formula1, data = data, mat = test, 
+  nInvir = 50, alpha = 0.05)
+@
+\end{center}
+\caption{Same fitness landscape as Figure~\ref{fitlandfinal}, except that it is produced using the \texttt{fitness\_landscape} function.}
+\end{figure}
+
+
+\newpage
+\begin{figure}[H]
+\begin{center}
+<<noBlock, cache = TRUE, fig.margin = TRUE>>=
+formula2 <- "resp ~ varb + 
+  infection:(Fvert + Invir) + 
+  GallWT.mean:(Invir + I(Invir^2))"
+fitness_landscape(formula2, data = data, mat = test, 
+  nInvir = 50, alpha = 0.05)
+@
+\end{center}
+\caption{Fitness landscape corresponding to the final model with the \texttt{Block} factor excluded.}
+\end{figure}
+
+
+\newpage
+\begin{figure}[H]
+\begin{center}
+<<fullmodel, cache = TRUE, fig.margin = TRUE>>=
+formula3 <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2)) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2))"
+fitness_landscape(formula3, data = data, mat = test, 
+  nInvir = 50, alpha = 0.05)
+@
+\end{center}
+\caption{Fitness landscape for full model with the \texttt{Block} and \texttt{Fvert} interaction terms excluded.}
+\end{figure}
+
+
+
+
+
+%\newpage
+%\subsection{Fitness landscapes without \texttt{Fvert} terms}
+%\begin{figure}[h]
+%\begin{center}
+%<<finalmodel_noFvert, cache = TRUE, fig.margin = TRUE>>=
+%formula1_noFvert <- "resp ~ varb + 
+%  infection:(Block + Invir) + 
+%  GallWT.mean:(Block + Invir + I(Invir^2))"
+%fitness_landscape(formula1_noFvert, data = data, mat = test, 
+%  nInvir = 50, alpha = 0.05)
+%@
+%\end{center}
+%\caption{Fitness landscape for final model without any \texttt{Fvert} terms. 
+%Ignore the factor levels for \texttt{Fvert} in the legend.}
+%\end{figure}
+
+
+
+%\newpage
+%\begin{figure}[h]
+%\begin{center}
+%<<noBlocknoFvert, cache = TRUE, fig.margin = TRUE>>=
+%formula2_noFvert <- "resp ~ varb + 
+%  infection:(Invir) + 
+%  GallWT.mean:(Invir + I(Invir^2))"
+%fitness_landscape(formula2_noFvert, data = data, mat = test, 
+%  nInvir = 50, alpha = 0.05)
+%@
+%\end{center}
+%\caption{Fitness landscape for final model without any \texttt{Block} or \texttt{Fvert} terms.
+%Ignore the factor levels for \texttt{Fvert} in the legend.}
+%\end{figure}
+
+
+%\newpage
+%\begin{figure}[h]
+%\begin{center}
+%<<fullmodelnoFvert, cache = TRUE, fig.margin = TRUE>>=
+%formula3_noFvert <- "resp ~ varb + 
+%  infection:(Block + Invir + I(Invir^2)) + 
+%  GallWT.mean:(Block + Invir + I(Invir^2))"
+%fitness_landscape(formula3_noFvert, data = data, mat = test, 
+%  nInvir = 50, alpha = 0.05)
+%@
+%\end{center}
+%\caption{Fitness landscape for full model without any \texttt{Fvert} terms. Ignore the factor levels for \texttt{Fvert} in the legend.}
+%\end{figure}
+
+
+\newpage
+\subsection{Fitness landscape for gall weight nodes}
+
+We now consider aster models for terms at the gall weight node only. We first perform a backwards selection procedure similar to the one above. We then produce the fitness landscape corresponding to that final model.
+
+The hypothesis tests are displayed below.
+
+<<gallfull_1, cache = TRUE>>=
+## lack of evidence for larger model: remove Fvert:Block
+data.null <- data.alt <- data
+formula.null <- "resp ~ varb + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2))"
+formula.alt <- "resp ~ varb + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2)) + 
+  GallWT.mean:(I(Fvert:Block))"
+pval_gall_full <- Rao_test(formula.null, formula.alt, 
+  data.null, data.alt)
+pval_gall_full
+
+## lack of evidence for larger model: remove Fvert*I(Invir^2)
+formula.null <- "resp ~ varb + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir)"
+formula.alt <- "resp ~ varb + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir) + 
+  GallWT.mean:(Fvert*I(Invir^2))"
+pval_gall_fInv2 <- Rao_test(formula.null, formula.alt, 
+  data.null, data.alt)
+pval_gall_fInv2
+@
+
+\newpage
+
+<<gallfull_2, dependson = "gallfull_1", cache = TRUE>>=
+## lack of evidence for larger model: remove Fvert*Invir
+formula.null <- "resp ~ varb + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2))"
+formula.alt <- "resp ~ varb + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2)) + 
+  GallWT.mean:(Fvert*Invir)"
+pval_gall_fInv <- Rao_test(formula.null, formula.alt, 
+  data.null, data.alt)
+pval_gall_fInv
+
+## evidence favors larger model: keep Invir^2
+formula.null <- "resp ~ varb + 
+  GallWT.mean:(Block + Fvert + Invir)"
+formula.alt <- "resp ~ varb + 
+  GallWT.mean:(Block + Fvert + Invir) + 
+  GallWT.mean:(I(Invir^2))"
+pval_gall_Inv2 <- Rao_test(formula.null, formula.alt, 
+  data.null, data.alt)
+pval_gall_Inv2
+
+## evidence favors larger model: keep Fvert
+formula.null <- "resp ~ varb + 
+  GallWT.mean:(Block + Invir + I(Invir^2))"
+formula.alt <- "resp ~ varb + 
+  GallWT.mean:(Block + Invir + I(Invir^2)) + 
+  GallWT.mean:(Fvert)"
+pval_gall_f <- Rao_test(formula.null, formula.alt, 
+  data.null, data.alt)
+pval_gall_f
+@
+
+\newpage
+
+<<gallfull_3, dependson = "gallfull_1", cache = TRUE>>=
+## evidence favors larger model: remove block factor
+formula.null <- "resp ~ varb + 
+  GallWT.mean:(Fvert + Invir + I(Invir^2))"
+formula.alt <- "resp ~ varb + 
+  GallWT.mean:(Fvert + Invir + I(Invir^2)) + 
+  GallWT.mean:(Block)"
+pval_gall_b <- Rao_test(formula.null, formula.alt, 
+  data.null, data.alt)
+pval_gall_b
+@
+
+
+The above model selection procedure is summarised in Table~\ref{Tab:selection2} below.
+
+
+\begin{table}[h!]
+\tiny
+\begin{center}
+\begin{tabular}{lll}
+model & gall weight node terms & p-value \\
+\hline
+null  & Block, Fvert, Invir, Invir$^2$, Fvert$*$Invir, Fvert$*$Invir$^2$  \\
+alt   & Block, Fvert, Invir, Invir$^2$, Fvert$*$Invir, Fvert$*$Invir$^2$, 
+      {\bf Block$*$Fvert}
+      & 0.92 \\
+      \hline
+null  & Block, Fvert, Invir, Invir$^2$, Fvert$*$Invir \\
+alt   & Block, Fvert, Invir, Invir$^2$, Fvert$*$Invir, {\bf Fvert$*$Invir$^2$} 
+      & 0.64 \\
+      \hline
+null  & Block, Fvert, Invir, Invir$^2$ \\
+alt   & Block, Fvert, Invir, Invir$^2$, {\bf Fvert$*$Invir}
+      & 0.16 \\
+      \hline      
+null  & Block, Fvert, Invir \\
+alt   & Block, Fvert, Invir, {\bf Invir$^2$}
+      & 2.53e-8 \\
+      \hline  
+null  & Block, Invir, Invir$^2$ \\
+alt   & Block, {\bf Fvert}, Invir, Invir$^2$
+      & 0.00024 \\
+      \hline  
+null  & Fvert, Invir, Invir$^2$ \\
+alt   & {\bf Block}, Fvert, Invir, Invir$^2$
+      & 0.46 \\
+      \hline        
+\end{tabular}
+\end{center}
+\caption{Summary of our model selection procedure. Our final model includes main effects for \texttt{Fvert} and \texttt{Invir}, and a quadratic term for \texttt{Invir}.
+}
+\label{Tab:selection2}
+\end{table}
+
+
+<<maketable2, echo = FALSE, eval = FALSE>>=
+## make table in R and write it to txt
+dat_test1 <- data.frame(model = c("null", "alt"), 
+  gall_weight_node_terms = c("Block; Fvert; Invir; Invir^2; Fvert*Invir; Fvert*Invir^2", 
+    "Block; Fvert; Invir; Invir^2; Fvert*Invir; Fvert*Invir^2; Block*Fvert"),
+                  p_value = c("","0.92")
+)
+
+dat_test2 <- data.frame(model = c("null", "alt"), 
+  gall_weight_node_terms = c("Block; Fvert; Invir; Invir^2; Fvert*Invir", 
+                             "Block; Fvert; Invir; Invir^2; Fvert*Invir; Fvert*Invir^2"),
+                  p_value = c("","0.64")
+)
+
+dat_test3 <- data.frame(model = c("null", "alt"), 
+  gall_weight_node_terms = c("Block; Fvert; Invir; Invir^2", 
+                             "Block; Fvert; Invir; Invir^2; Fvert*Invir"),
+                  p_value = c("","0.16")
+)
+
+dat_test4 <- data.frame(model = c("null", "alt"), 
+  gall_weight_node_terms = c("Block; Fvert; Invir", 
+                             "Block; Fvert; Invir; Invir^2"),
+                  p_value = c("","2.56e-8")
+)
+
+dat_test5 <- data.frame(model = c("null", "alt"), 
+  gall_weight_node_terms = c("Block; Invir; Invir^2", 
+                             "Block; Fvert; Invir; Invir^2"),
+                  p_value = c("","0.00024")
+)
+
+dat_test6 <- data.frame(model = c("null", "alt"), 
+  gall_weight_node_terms = c("Fvert; Invir; Invir^2", 
+                             "Block; Fvert; Invir; Invir^2"),
+                  p_value = c("","0.46")
+)
+
+dat <- rbind(dat_test1, dat_test2, dat_test3, dat_test4, dat_test5, dat_test6)
+write.table(dat, file = "tester_gallwt.txt", sep = ",", quote = FALSE, row.names = F)
+@
+
+
+
+
+We now produce the fitness landscape corresponding to the final model above that includes main effects for \texttt{Fvert} and \texttt{Invir}, and a quadratic term for \texttt{Invir}.
+
+\newpage
+\begin{figure}[H]
+\begin{center}
+<<gallweightmodel, cache = TRUE, fig.margin = TRUE>>=
+formula_gall <- "resp ~ varb + 
+  GallWT.mean:(Fvert + Invir + I(Invir^2))"
+fitness_landscape(formula_gall, data = data, mat = test, 
+  nInvir = 50, alpha = 0.05)
+@
+\end{center}
+\caption{Fitness landscape for the model with a linear term for \texttt{Fvert} and a linear and quadratic term for \texttt{Invir}. This model only has terms for the gall weight nodes.}
+\end{figure}
+
+
+
+
+\newpage
+\subsection{Fitness landscapes with 2 level \texttt{Fvert} factor}
+
+We make similar fitness landscapes corresponding to an analysis that combines the second and third levels of \texttt{Fvert}.
+
+<<>>=
+test2 <- test
+test2 <- test2 %>% mutate(Fvert = 
+  as.factor(ifelse(Fvert != 0, 1, 0)))
+data2 <- asterdata(data = test2, vars = vars, 
+  pred = pred, group = group, code = code, 
+  families = families, delta = delta)
+is.validasterdata(data2)
+@
+
+The fitness landscapes begin on the next page.
+
+
+
+\newpage
+\begin{figure}[H]
+\begin{center}
+<<finalFvert2, cache = TRUE, fig.margin = TRUE>>=
+formula1 <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir) + 
+  GallWT.mean:(Block + Invir + I(Invir^2))"
+fitness_landscape(formula1, data = data2, mat = test2, 
+  nInvir = 50, alpha = 0.05)
+@
+\end{center}
+\caption{Fitness landscape corresponding to the final model where the second and third levels of \texttt{Fvert} are combined.}
+\end{figure}
+
+
+
+\newpage
+\begin{figure}[H]
+\begin{center}
+<<noBlockFvert2, cache = TRUE, fig.margin = TRUE>>=
+formula2 <- "resp ~ varb + 
+  infection:(Fvert + Invir) + 
+  GallWT.mean:(Invir + I(Invir^2))"
+fitness_landscape(formula2, data = data2, mat = test2, 
+  nInvir = 50, alpha = 0.05)
+@
+\end{center}
+\caption{Fitness landscape for the final model with the \texttt{Block} factor excluded and the second and third levels of \texttt{Fvert} are combined.}
+\end{figure}
+
+
+\newpage
+\begin{figure}[H]
+\begin{center}
+<<fullmodelFvert2, cache = TRUE, fig.margin = TRUE>>=
+formula3 <- "resp ~ varb + 
+  infection:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2)) + 
+  GallWT.mean:(Block + Fvert + Invir + I(Invir^2) + 
+    Fvert*Invir + Fvert*I(Invir^2))"
+fitness_landscape(formula3, data = data2, mat = test2, 
+  nInvir = 50, alpha = 0.05)
+@
+\end{center}
+\caption{Fitness landscape for the full model with the \texttt{Block} and \texttt{Fvert} interaction terms excluded and the second and third levels of \texttt{Fvert} are combined.}
+\end{figure}
+
+
+
+
+
+\newpage
+\section{Aster analysis without $LH2$ nodes}
+\label{sec:noLH2}
+
+In this section, we fit the aster model corresponding to the graphical structure seen in Figure~\ref{graph:one} with the $LH2$ node and all successor nodes excluded.  The same variables used in the final aster model of the previous section are used to fit this model.  The same hypothetical individuals used to estimate expected Darwinian fitness in the previous analysis are used here.  %The code building the aster model in this section is 
+%very similar to that in the previous section and is excluded at the moment.  
+Estimated expected Darwinian fitness for the hypothetical individuals using the aster model with the $LH2$ nodes excluded is depicted in Figure~\ref{fig5}.  Figure~\ref{fig6} compares estimated Darwinian fitness for the two aster models of interest.  The dotted lines and solid lines correspond to estimates of Darwinian fitness using the aster model with the $LH2$ nodes excluded and the full aster model respectively.
+
+<<echo = FALSE>>=
+load("supplement-to-summer-writeup-noLH2.RData")
+@
+
+
+\begin{center}
+\begin{figure}[H]
+<<Fig5, fig.show = "hold", out.height = "7cm", out.width = "7cm", echo = FALSE, fig.margin = TRUE>>=
+plot.new()
+
+drool <- A %*% fool %*% t(A)
+var <- diag(drool)
+se <- sqrt(var) / sqrt(nrow(test2))
+crit <- qnorm(1-0.025) * se
+
+plot.window(xlim = c(0,max(test2$Invir)), ylim = c(0, 0.11))
+axis(1)
+axis(2)
+lines(cand2.Invir[1:nInvir], sum2s[1:nInvir], lty = 1)
+lines(cand2.Invir[1:nInvir], sum2s[1:nInvir] - crit[1:nInvir],
+  lty = 2)
+lines(cand2.Invir[1:nInvir], sum2s[1:nInvir] + crit[1:nInvir],
+  lty = 2)
+
+index2 <- c((nInvir+1):(2*nInvir))
+lines(cand2.Invir[index2], sum2s[index2], lty = 1, col = "red")
+lines(cand2.Invir[index2], sum2s[index2] - crit[index2], 
+  lty = 2, col = "red")
+lines(cand2.Invir[index2], sum2s[index2] + crit[index2],
+  lty = 2, col = "red")
+  
+legend(x = "bottomright",
+  legend = c("Fvert level 0", "Fvert level 1"),
+  col = c("black", "red"),
+  lty = c(1, 1),
+  xjust = .5, yjust = .5)
+title(main = "Fitness landscape")
+title(xlab = "Invir")
+title(ylab = "Expected spore mass")
+box()
+
+
+plot.new()
+
+drool <- A %*% fool %*% t(A)
+var <- diag(drool)
+se <- sqrt(var) / sqrt(nrow(test2))
+crit <- qnorm(1-0.025/50) * se
+
+plot.window(xlim = c(0,max(test2$Invir)), ylim = c(0, 0.11))
+axis(1)
+axis(2)
+lines(cand2.Invir[1:nInvir], sum2s[1:nInvir], lty = 1)
+lines(cand2.Invir[1:nInvir], sum2s[1:nInvir] - crit[1:nInvir],
+  lty = 2)
+lines(cand2.Invir[1:nInvir], sum2s[1:nInvir] + crit[1:nInvir],
+  lty = 2)
+
+index2 <- c((nInvir+1):(2*nInvir))
+lines(cand2.Invir[index2], sum2s[index2], lty = 1, col = "red")
+lines(cand2.Invir[index2], sum2s[index2] - crit[index2], 
+  lty = 2, col = "red")
+lines(cand2.Invir[index2], sum2s[index2] + crit[index2],
+  lty = 2, col = "red")
+  
+legend(x = "bottomright",
+  legend = c("Fvert level 0", "Fvert level 1"),
+  col = c("black", "red"),
+  lty = c(1, 1),
+  xjust = .5, yjust = .5)
+title(main = "Fitness landscape")
+title(xlab = "Invir")
+title(ylab = "Expected spore mass")
+box()
+@
+\caption{The fitness landscape for hypothetical individuals possessing \texttt{Invir} values suggested by the original data with standard errors. These fitness landscapes are from an aster model with no LH2 node. The left panel shows confidence bands at 95\% confidence level. The right panel shows confidence bands at 95\% confidence level adjusted for multiple comparisons. }
+\label{fig5}
+\end{figure}
+\end{center}
+
+
+\newpage
+\begin{center}
+\begin{figure}[H]
+<<Fig6, out.height = "7cm", out.width = "7cm", echo = FALSE, fig.margin = TRUE>>=
+plot.new()
+plot.window(xlim = c(0,max(test2$Invir)), ylim = c(0, 0.11))
+axis(1)
+axis(2)
+lines(cand.Invir[1:nInvir], sums[1:nInvir], lty = 1)
+lines(cand2.Invir[1:nInvir], sum2s[1:nInvir], lty = 2)
+
+index2 <- c((nInvir+1):(2*nInvir))
+lines(cand.Invir[index2], sums[index2], lty = 1, col = "red")
+lines(cand2.Invir[index2], sum2s[index2], lty = 2, col = "red")
+  
+legend(x = "bottomright",
+  legend = c("Fvert-0", "Fvert-0; no LH2", "Fvert-1", "Fvert-1; no LH2"),
+  col = c("black", "black", "red", "red"),
+  lty = c(1, 2, 1, 2),
+  xjust = .5, yjust = .5)
+title(main = "Fitness landscape")
+title(xlab = "Invir")
+title(ylab = "Expected spore mass")
+box()
+@
+\caption{The fitness landscape for hypothetical individuals possessing \texttt{Invir} values suggested by the original data with standard errors. These fitness landscapes are from an aster model with no LH2 node. %The left panel shows confidence bands at 95\% confidence level. The right panel shows confidence bands at 95\% confidence level adjusted for multiple comparisons. 
+The dashled lines correspond to 95\% confidence intervals.}
+\label{fig6}
+\end{figure}
+\end{center}
+
+
+
+
+\newpage
+\begin{thebibliography}{}
+
+\bibitem[Eck, et al.(2015 a)Eck, et al.]{eckanalysis}
+Eck, D.~J., Shaw, R.~G., Geyer, C.~J., and Kingsolver, J.~G. (2015).
+\newblock An Integrated Analysis of Phenotypic Selection on Insect Body Size and Development Time.
+\newblock \emph{Evolution}, \textbf{69}, 9, 2525--2532.
+
+\bibitem[Eck, et al.(2015 b)Eck, et al.]{eck}
+Eck, D.~J., Shaw, R.~G., Geyer, C.~J., and Kingsolver, J.~G. (2015).
+\newblock Supporting Data Analysis for ``An Integrated Analysis
+of Phenotypic Selection on Insect Body Size
+and Development Time." Technical Report No. 698. School of Statistics, University of Minnesota.
+\newblock \url{http://conservancy.umn.edu/handle/11299/172272.}
+
+\bibitem[Geyer(2010)Geyer]{aster2-package}
+Geyer, C.~J. (2010).
+\newblock R package \texttt{aster2} (Aster Models), version 0.1-1.
+\newblock \url{http://cran.r-project.org/package=aster2}.
+
+\bibitem[Geyer(2014)Geyer]{aster-package}
+Geyer, C.~J. (2014).
+\newblock R package \texttt{aster} (Aster Models), version 0.8-30.
+\newblock \url{http://cran.r-project.org/package=aster}.
+
+\end{thebibliography}
+
+
+\end{document}
+
